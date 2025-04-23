@@ -10,6 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.2.0",
     "@clerk/backend": "^1.25.8",
     "@clerk/nextjs": "^6.12.12",
     "@noble/secp256k1": "^2.2.3",
