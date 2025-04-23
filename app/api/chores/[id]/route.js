@@ -166,3 +166,20 @@ export async function PATCH(request, { params }) {
     );
   }
 }
+
+export async function DELETE(request, { params }) {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const choreId = params.id;
+
+  const choreToDelete = await prisma.chore.delete({
+    where: { id: choreId}
+  })
+  return NextResponse.json({
+    message: `Chore with id ${choreId} deleted`,
+    chore: choreToDelete
+  });
+
+}

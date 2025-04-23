@@ -3,31 +3,24 @@
 
 import {
   Bitcoin,
-  CheckCircle,
   Circle,
-  CalendarClock,
-  Clock,
   User,
   MoreVertical,
+  CircleAlert
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import EditChoreDialog from "./EditChoreDialog";
 import CompleteChoreDialog from "./CompleteChoreDialog";
 import DeleteChoreDialog from "./DeleteChoreDialog";
-import { calculateTimeLeft, cn, getChoreTimeStatus } from "@/lib/utils";
+import { cn, getChoreTimeStatus } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import EarnMoreDialog from "./EarnMoreDialog";
 import { Badge } from "../ui/badge";
-import { CircleAlert } from "lucide-react";
-import { CheckCircle2 } from "lucide-react";
-import { formatDistanceToNow, isToday } from "date-fns";
 import { choreDecorationColor, choreStatusColor } from "@/lib/constants";
-import { AlarmCheck } from "lucide-react";
 import StopChoreDialog from "./StopChoreDialog";
 
 export default function ChoresCard({ chore, role, orgSettings }) {
-  const [availableIn, setAvailableIn] = useState("");
   const [showActions, setShowActions] = useState(false);
 
   const { chorePenalty, dailyChoreDeadline } = orgSettings || {};

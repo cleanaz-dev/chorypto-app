@@ -10,20 +10,29 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function DeleteChoreDialog({ chore }) {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleDelete = async () => {
+    setLoading(true);
     try {
       await fetch(`/api/chores/${chore.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });
-      await fetch("/api/revalidate?path=/chores", { method: "POST" });
+      
       setOpen(false);
+      toast.success("Chore deleted successfully");
+      setLoading(false); 
     } catch (err) {
       console.error("Failed to delete chore:", err);
+    } finally {
+      router.refresh()
     }
   };
 
@@ -44,7 +53,7 @@ export default function DeleteChoreDialog({ chore }) {
         </DialogHeader>
         <p className="text-gray-200">Are you sure you want to delete "{chore.name}"?</p>
         <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-          Delete
+          {loading ? "Deleting..." : "Delete"}
         </Button>
       </DialogContent>
     </Dialog>

@@ -23,7 +23,7 @@ export default function CompleteChoreDialog({ chore, currentReward }) {
     if (chore.status === "Overdue" || chore.status === "Late") {
       return {
         message: chore.status === "Overdue" ? "Overdue" : "Late",
-        isAvailable: false,
+        isAvailable: true,
         icon:
           chore.status === "Overdue" ? (
             <AlertCircle className="h-4 w-4 text-red-500" />
