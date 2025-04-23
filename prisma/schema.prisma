@@ -1,0 +1,259 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  Creator
+  Assignee
+}
+
+enum Frequency {
+  Once
+  Daily
+  Weekly
+}
+
+enum ChoreStatus {
+  Active
+  Completed
+  Archived
+  Deleted
+  Overdue
+  Late
+  Missed
+}
+
+model Organization {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  creatorId   String       @unique @db.ObjectId
+  creator     User         @relation("OrganizationCreator", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  members     User[]       @relation("OrganizationMembers")
+  invites     Invite[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  wallet      OrgWallet?   @relation
+  OrgSettings OrgSettings?
+  Payout      Payout[]
+}
+
+model User {
+  id                  String         @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId             String?        @unique
+  firstName           String
+  lastName            String
+  email               String         @unique
+  level               Int?           @default(1)
+  xp                  Int?           @default(0)
+  choreInterests      String[]       @default([])
+  reminderTime        String?        @default("morning")
+  weeklyGoal          Int            @default(10)
+  role                Role           @default(Assignee)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  organizationId      String?        @db.ObjectId
+  Organization        Organization?  @relation("OrganizationMembers", fields: [organizationId], references: [id], onDelete: SetNull)
+  Chores              Chore[]
+  Notifications       Notification[]
+  ChoreLog            ChoreLog[]
+  Wallet              UserWallet[]
+  UserSettings        UserSettings?
+  AdminSettings       AdminSettings?
+  createdOrganization Organization?  @relation("OrganizationCreator") // Changed to singular
+  Payout              Payout[]
+}
+
+model AdminSettings {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String          @unique @db.ObjectId
+  user            User            @relation(fields: [userId], references: [id])
+  payoutTime      payoutTime      @default(Standard)
+  payoutFrequency payoutFrequency @default(BiWeekly)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model OrgSettings {
+  id                 String          @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId     String          @unique @db.ObjectId
+  organization       Organization    @relation(fields: [organizationId], references: [id])
+  payoutTime         payoutTime      @default(Standard)
+  payoutFrequency    payoutFrequency @default(BiWeekly)
+  payoutCurrency     Coin            @default(Bitcoin)
+  dailyChoreDeadline String?
+  dailyChoreWindow   Int?
+  chorePenalty       Float?
+  baseXp             Int?            @default(500)
+  scalingFactor      Int?            @default(100)
+  nextPayOutDate     DateTime?
+  payoutDay          String?
+  payoutGraceDays    Int?            @default(2)
+  onTimeBonusSats    Int?            @default(1000)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+enum Coin {
+  Bitcoin
+  Ethereum
+  USDT
+  Litecoin
+}
+
+enum payoutFrequency {
+  Daily
+  Weekly
+  BiWeekly
+}
+
+enum payoutTime {
+  Early
+  Standard
+  Late
+}
+
+enum Timezone {
+  UTC
+  America_New_York // ET/EDT
+  America_Chicago // CT/CDT
+  America_Denver // MT/MDT
+  America_Los_Angeles // PT/PDT
+  Europe_London
+  Europe_Paris
+  Asia_Tokyo
+  Australia_Sydney
+}
+
+model UserSettings {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String   @unique @db.ObjectId
+  user                User     @relation(fields: [userId], references: [id])
+  language            String   @default("English")
+  timezone            Timezone @default(America_New_York)
+  choreReminders      Boolean  @default(true)
+  rewardNotifications Boolean  @default(true)
+  marketingEmails     Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model UserWallet {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  address    String
+  privateKey String
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id])
+  network    String   @default("testnet")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model OrgWallet {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  address        String
+  privateKey     String
+  organizationId String       @unique @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  network        String       @default("testnet")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Chore {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  reward       Int
+  frequency    Frequency      @default(Once)
+  scheduleType ChoreSchedule? @default(Everyday)
+  status       ChoreStatus    @default(Active)
+  completed    Boolean        @default(false)
+  creatorId    String         @db.ObjectId
+  assigneeId   String?        @db.ObjectId
+  dueDate      DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  User         User?          @relation(fields: [userId], references: [id])
+  userId       String?        @db.ObjectId
+  ChoreLog     ChoreLog[]
+}
+
+enum ChoreSchedule {
+  Everyday
+  Weekdays
+  Weekend
+}
+
+model ChoreLog {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  choreId          String           @db.ObjectId
+  chore            Chore            @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  userId           String           @db.ObjectId
+  user             User             @relation(fields: [userId], references: [id])
+  completedAt      DateTime?
+  frequency        Frequency?
+  rewardApplied    Int
+  completionStatus CompletionSatus?
+  notes            String?
+  paid             Boolean?         @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  Payout           Payout?          @relation(fields: [payoutId], references: [id])
+  payoutId         String?          @db.ObjectId
+}
+
+enum CompletionSatus {
+  OnTime
+  Missed
+  Late
+}
+
+model Payout {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String       @db.ObjectId
+  user           User         @relation(fields: [userId], references: [id])
+  amount         Int // Total amount in satoshis
+  coin           Coin         @default(Bitcoin)
+  bonus          Int?         @default(0)
+  walletAddress  String // Recipient's wallet address
+  status         PayoutStatus @default(Pending) // e.g., Pending, Completed, Failed
+  transactionId  String? // Blockchain transaction ID (optional)
+  payoutDate     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  choreLogs      ChoreLog[] // Optional: Links to paid ChoreLog entries
+}
+
+enum PayoutStatus {
+  Pending
+  Completed
+  Failed
+  Missed
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Invite {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  token          String       @unique
+  email          String
+  organizationId String       @db.ObjectId
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime
+  Organization   Organization @relation(fields: [organizationId], references: [id])
+}
